@@ -1,0 +1,34 @@
+# Python / Backend
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+backend/engageshield.db
+backend/ml/data/synthetic_dataset.json
+backend/ml/models/*.joblib
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+
+# IDEs / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker / Logs
+*.log
+logs/

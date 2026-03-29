@@ -1,0 +1,53 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/engageshield-backend:$IMAGE_TAG backend/
+          docker push $ECR_REGISTRY/engageshield-backend:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/engageshield-backend:$IMAGE_TAG $ECR_REGISTRY/engageshield-backend:latest
+          docker push $ECR_REGISTRY/engageshield-backend:latest
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/engageshield-frontend:$IMAGE_TAG frontend/
+          docker push $ECR_REGISTRY/engageshield-frontend:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/engageshield-frontend:$IMAGE_TAG $ECR_REGISTRY/engageshield-frontend:latest
+          docker push $ECR_REGISTRY/engageshield-frontend:latest
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster engageshield-cluster \
+            --service engageshield-service \
+            --force-new-deployment
